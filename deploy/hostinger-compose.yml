@@ -1,0 +1,33 @@
+services:
+  fia:
+    image: node:22-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-c", "mkdir -p /app && echo \"$$APP_TGZ\" | base64 -d | tar xz -C /app && exec node server.js"]
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATA_DIR=/data
+      - OPENCLAW_URL=http://host.docker.internal:61394
+      - OPENCLAW_ENV_FILE=/run/openclaw.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - fia_data:/data
+      - /docker/openclaw-j0tp/.env:/run/openclaw.env:ro
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.fia.rule=Host(`fia.cloudtechbookkeeping.com`)
+      - traefik.http.routers.fia.entrypoints=websecure
+      - traefik.http.routers.fia.tls.certresolver=letsencrypt
+      - traefik.http.routers.fia.service=fia
+      - traefik.http.routers.fia-alt.rule=Host(`fia.srv1410002.hstgr.cloud`)
+      - traefik.http.routers.fia-alt.entrypoints=websecure
+      - traefik.http.routers.fia-alt.tls.certresolver=letsencrypt
+      - traefik.http.routers.fia-alt.service=fia
+      - traefik.http.services.fia.loadbalancer.server.port=3000
+
+volumes:
+  fia_data:

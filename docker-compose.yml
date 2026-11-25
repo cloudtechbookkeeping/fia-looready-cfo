@@ -1,0 +1,28 @@
+services:
+  fia:
+    build: .
+    container_name: fia
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - fia-data:/data            # users + chat history survive restarts and rebuilds
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # lets the app reach an OpenClaw gateway running on the VPS itself
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-proxy}
+      - traefik.http.routers.fia.rule=Host(`${APP_DOMAIN}`)
+      - traefik.http.routers.fia.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.fia.tls=true
+      - traefik.http.routers.fia.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.services.fia.loadbalancer.server.port=3000
+
+volumes:
+  fia-data:
+
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-proxy}
