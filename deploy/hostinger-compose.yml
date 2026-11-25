@@ -1,7 +1,8 @@
-# Hostinger Docker Manager project "fia". Builds straight from this GitHub repo.
+# Hostinger Docker Manager project "fia". Image is built by GitHub Actions on every push to main.
 services:
   fia:
-    build: https://github.com/cloudtechbookkeeping/fia-looready-cfo.git#main
+    image: ghcr.io/cloudtechbookkeeping/fia-looready-cfo:latest
+    pull_policy: always
     restart: unless-stopped
     env_file:
       - .env
