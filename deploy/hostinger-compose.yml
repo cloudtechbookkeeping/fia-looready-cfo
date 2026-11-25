@@ -1,25 +1,11 @@
+# Hostinger Docker Manager project "fia". Builds straight from this GitHub repo.
 services:
   fia:
-    image: node:22-alpine
+    build: https://github.com/cloudtechbookkeeping/fia-looready-cfo.git#main
     restart: unless-stopped
-    # First start (or new APP_SHA256): download dist/app.tgz once via a short-lived GitHub link, verify it, unpack to /data/app.
-    command:
-      - sh
-      - -c
-      - |
-        set -e
-        if [ "$$(cat /data/app/.sha 2>/dev/null)" != "$$APP_SHA256" ]; then
-          node -e "fetch(process.env.APP_URL).then(r=>{if(!r.ok)throw new Error('download '+r.status);return r.arrayBuffer()}).then(b=>require('fs').writeFileSync('/tmp/app.tgz',Buffer.from(b)))"
-          echo "$$APP_SHA256  /tmp/app.tgz" | sha256sum -c -
-          rm -rf /data/app && mkdir -p /data/app && tar xzf /tmp/app.tgz -C /data/app && echo "$$APP_SHA256" > /data/app/.sha
-        fi
-        cd /data/app && exec node server.js
     env_file:
       - .env
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - DATA_DIR=/data
       - OPENCLAW_URL=http://host.docker.internal:61394
       - OPENCLAW_ENV_FILE=/run/openclaw.env
     extra_hosts:
@@ -32,11 +18,6 @@ services:
       - traefik.http.routers.fia.rule=Host(`fia.cloudtechbookkeeping.com`)
       - traefik.http.routers.fia.entrypoints=websecure
       - traefik.http.routers.fia.tls.certresolver=letsencrypt
-      - traefik.http.routers.fia.service=fia
-      - traefik.http.routers.fia-alt.rule=Host(`fia.srv1410002.hstgr.cloud`)
-      - traefik.http.routers.fia-alt.entrypoints=websecure
-      - traefik.http.routers.fia-alt.tls.certresolver=letsencrypt
-      - traefik.http.routers.fia-alt.service=fia
       - traefik.http.services.fia.loadbalancer.server.port=3000
 
 volumes:
