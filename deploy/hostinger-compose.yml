@@ -2,8 +2,18 @@ services:
   fia:
     image: node:22-alpine
     restart: unless-stopped
-    working_dir: /app
-    command: ["sh", "-c", "mkdir -p /app && echo \"$$APP_TGZ\" | base64 -d | tar xz -C /app && exec node server.js"]
+    # First start (or new APP_SHA256): download dist/app.tgz once via a short-lived GitHub link, verify it, unpack to /data/app.
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        if [ "$$(cat /data/app/.sha 2>/dev/null)" != "$$APP_SHA256" ]; then
+          node -e "fetch(process.env.APP_URL).then(r=>{if(!r.ok)throw new Error('download '+r.status);return r.arrayBuffer()}).then(b=>require('fs').writeFileSync('/tmp/app.tgz',Buffer.from(b)))"
+          echo "$$APP_SHA256  /tmp/app.tgz" | sha256sum -c -
+          rm -rf /data/app && mkdir -p /data/app && tar xzf /tmp/app.tgz -C /data/app && echo "$$APP_SHA256" > /data/app/.sha
+        fi
+        cd /data/app && exec node server.js
     env_file:
       - .env
     environment:
